@@ -2,7 +2,7 @@ import os
 import re
 from flask import Flask, request, abort
 from linebot.v3 import WebhookHandler
-from linebot.v3.exceptions import InvalidSignatureError, LineBotApiError
+from linebot.v3.exceptions import InvalidSignatureError
 from linebot.v3.messaging import (
     Configuration,
     ApiClient,
@@ -16,13 +16,11 @@ from linebot.v3.webhooks import MessageEvent, TextMessageContent
 app = Flask(__name__)
 
 # --- Get secrets from Environment Variables ---
+CHANNEL_ACCESS_TOKEN = os.getenv("CHANNEL_ACCESS_TOKEN")
 CHANNEL_SECRET = os.getenv("CHANNEL_SECRET")
 
-if not CHANNEL_SECRET:
-    print("❌ Error: Missing CHANNEL_SECRET environment variable.")
-    exit()
-
-# --- LINE Webhook Handler Setup ---
+# --- LINE Bot API and Webhook Handler Setup ---
+configuration = Configuration(access_token=CHANNEL_ACCESS_TOKEN)
 handler = WebhookHandler(CHANNEL_SECRET)
 
 
@@ -68,17 +66,14 @@ def handle_message(event):
         reply_text = "That does not look like a 6-digit code. Please try again."
 
     # Send the reply message back to the user
-    try:
-        with ApiClient(configuration) as api_client:
-            line_bot_api = MessagingApi(api_client)
-            line_bot_api.reply_message(
-                ReplyMessageRequest(
-                    reply_token=event.reply_token,
-                    messages=[TextMessage(text=reply_text)]
-                )
+    with ApiClient(configuration) as api_client:
+        line_bot_api = MessagingApi(api_client)
+        line_bot_api.reply_message_with_http_info(
+            ReplyMessageRequest(
+                reply_token=event.reply_token,
+                messages=[TextMessage(text=reply_text)]
             )
-    except LineBotApiError as e:
-        print(f"❌ Error sending reply message: {e.body}")
+        )
 
 
 # This part is for local testing; Gunicorn will run the app in production.
