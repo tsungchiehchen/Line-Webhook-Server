@@ -43,19 +43,36 @@ def callback():
 @handler.add(MessageEvent, message=TextMessageContent)
 def handle_message(event):
     message_text = event.message.text
-    print(f"Received message from user: {message_text}")
+    reply_text = ""
     
-    # Use regex to find a 6-digit number in the message
+    # Try to find a 6-digit number in the user's message
     otp_match = re.search(r'\b\d{6}\b', message_text)
     
     if otp_match:
         otp_code = otp_match.group(0)
         print(f"✅ OTP Found: {otp_code}. Saving to otp.txt")
-        # Save the extracted OTP to a file for the main script to read
         with open("otp.txt", "w") as f:
             f.write(otp_code)
+        # Set the success reply message
+        reply_text = f"Thank you! OTP {otp_code} received."
     else:
-        print("ℹ️ No 6-digit OTP found in the message.")
+        print(f"ℹ️ No 6-digit OTP found in message: '{message_text}'")
+        # Set the failure reply message
+        reply_text = "That does not look like a 6-digit code. Please try again."
+
+    # Send the reply message back to the user
+    try:
+        with ApiClient(configuration) as api_client:
+            line_bot_api = MessagingApi(api_client)
+            line_bot_api.reply_message(
+                ReplyMessageRequest(
+                    reply_token=event.reply_token,
+                    messages=[TextMessage(text=reply_text)]
+                )
+            )
+    except LineBotApiError as e:
+        print(f"❌ Error sending reply message: {e.body}")
+
 
 # This part is for local testing; Gunicorn will run the app in production.
 if __name__ == "__main__":
