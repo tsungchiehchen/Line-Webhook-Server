@@ -1,4 +1,5 @@
 import os
+from dotenv import load_dotenv
 import re
 from flask import Flask, request, abort
 from linebot.v3 import WebhookHandler
@@ -11,6 +12,8 @@ from linebot.v3.messaging import (
     TextMessage
 )
 from linebot.v3.webhooks import MessageEvent, TextMessageContent
+
+load_dotenv()
 
 # --- Flask App Initialization ---
 app = Flask(__name__)
